@@ -18,18 +18,23 @@ std::string diagnostic::Diagnostic::print() const {
   std::string result = "";
   auto col = span.get_column_number();
   auto line = span.get_line_number();
+  auto line_text =
+      console::colorize(std::string(span.get_line()), console::FG_MAGENTA);
 
   result += get_diagnostic_severity_string(severity) + " ";
   result += span.file.path + ":" + std::to_string(line) + ":" +
             std::to_string(col) + " -> ";
   result += get_diagnostic_kind_string(kind) + "\n";
   result += " | \n";
-  result += " | " + std::string(span.get_line()) + "\n";
+  result += " | " + line_text + "\n";
 
   std::string prefix_whitespace = std::string(col == 0 ? 0 : col - 1, ' ');
   std::string suffix_tildes = std::string(span.length - 1, '~');
-  result += " | " + prefix_whitespace + "^" + suffix_tildes + "\n";
-  result += "Help: " + message;
+  result +=
+      " | " + prefix_whitespace +
+      console::colorize(std::string("^") + suffix_tildes, console::FG_GREEN) +
+      "\n";
+  result += console::colorize("Help: ", console::BOLD_YELLOW) + message;
 
   return result;
 }

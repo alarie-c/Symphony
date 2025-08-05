@@ -8,9 +8,9 @@
 namespace diagnostic {
 
 #define DIAGNOSTIC_SEVERITIES                                                  \
-  X(Error, "Error:", console::FG_RED)                                          \
-  X(Warning, "Warning:", console::FG_MAGENTA)                                  \
-  X(Info, "Info:", console::FG_BRIGHT_BLUE)
+  X(Error, "Error:", console::BOLD_RED)                                        \
+  X(Warning, "Warning:", console::BOLD_MAGENTA)                                \
+  X(Info, "Info:", console::BOLD_BRIGHT_BLUE)
 
 /// @brief Represents the severity of some diagnostic. Not all diagnostic kinds
 /// are errors, and only errors can abort compilation.
@@ -30,7 +30,7 @@ constexpr std::string get_diagnostic_severity_string(const Severity &severity) {
   switch (severity) {
 #define X(name, str, color)                                                    \
   case name:                                                                   \
-    return console::colorize(str, color, true);
+    return console::colorize(str, color);
     DIAGNOSTIC_SEVERITIES
 #undef X
   };

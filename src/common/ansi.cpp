@@ -29,20 +29,16 @@ void console::initialize_console_attributes() {
 }
 #endif
 
-std::string console::colorize(const std::string &input, const char *color,
-                              bool bold) {
+std::string console::colorize(const std::string &input, const char *color) {
   using namespace console;
 
   // Early return the input if the terminal isn't color capable
   if (!IS_COLOR_CAPABLE)
     return std::string(input);
 
-  const char *bold_esc = bold ? BOLD : "";
-
   // Append data to the resulting string
   std::string result = ESC;
   result += color;
-  result += bold_esc;
   result += input;
   result += ESC;
   result += RESET;

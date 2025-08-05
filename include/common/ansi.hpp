@@ -4,9 +4,13 @@
 
 namespace console {
 
-constexpr auto ESC = "/033";
+constexpr auto ESC = "\033";
 constexpr auto RESET = "[0m";
-constexpr auto BOLD = "[1m";
+
+constexpr auto BOLD_RED = "[31;1m";
+constexpr auto BOLD_YELLOW = "[33;1m";
+constexpr auto BOLD_MAGENTA = "[35;1m";
+constexpr auto BOLD_BRIGHT_BLUE = "[94;1m";
 
 constexpr auto FG_BLACK = "[30m";
 constexpr auto FG_RED = "[31m";
@@ -37,8 +41,7 @@ extern bool IS_COLOR_CAPABLE;
 /// @param color the color code to use
 /// @param bold whether or not to bold the input
 /// @return One `std::string` with all the attributes added
-std::string colorize(const std::string &input, const char *color,
-                     bool bold = false);
+std::string colorize(const std::string &input, const char *color);
 
 /// @brief Checks the attributes of the current console to update the
 /// `IS_COLOR_CAPABLE` boolean.
