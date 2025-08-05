@@ -1,4 +1,5 @@
-#include "common/span.h"
+#include "common/span.hpp"
+#include <cassert>
 
 File::File(std::string content, std::string path)
     : content(content), path(path), length(content.size()) {}
@@ -6,11 +7,20 @@ File::File(std::string content, std::string path)
 Span::Span(const File &file, size_t offset, size_t length)
     : file(file), offset(offset), length(length) {}
 
-std::ostream &operator<<(std::ostream &os, const Span &span) {
-  int line = span.get_line_number();
-  int col = span.get_column_number();
+std::string Span::stringify() const {
+  int line = get_line_number();
+  int col = get_column_number();
 
-  os << span.file.path << ":" << line << ":" << col;
+  std::string result = file.path;
+  result += ":";
+  result += std::to_string(line);
+  result += ":";
+  result += std::to_string(col);
+  return result;
+}
+
+std::ostream &operator<<(std::ostream &os, const Span &span) {
+  os << span.stringify();
   return os;
 }
 
@@ -20,6 +30,26 @@ std::string_view Span::get_lexeme() const {
     len = file.length - offset;
 
   return std::string_view(file.content).substr(offset, len);
+}
+
+std::string_view Span::get_line() const {
+  assert(offset <= file.length && "Span offset is out of bounds");
+  const std::string_view content = file.content;
+
+  // Find the start of the line
+  size_t line_start = content.rfind('\n', offset == 0 ? 0 : offset - 1);
+  if (line_start == std::string::npos)
+    line_start = 0;
+  else
+    line_start += 1;
+
+  // Find the end of the line
+  size_t line_end = content.find('\n', offset);
+  if (line_end == std::string::npos)
+    line_end = file.length;
+
+  // Return a substring of this string view
+  return content.substr(line_start, line_end - line_start);
 }
 
 int Span::get_column_number() const {
