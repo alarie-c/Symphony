@@ -8,11 +8,10 @@ if ($CurrentDirectoryName -eq "build") {
     Set-Location ..
 }
 
+$BuildDir = "build"
 if (-not (Test-Path $BuildDir)) {
     New-Item -ItemType Directory -Path $BuildDir | Out-Null
 }
-
-$BuildDir = "build"
 Set-Location $BuildDir
 
 cmake .. 
