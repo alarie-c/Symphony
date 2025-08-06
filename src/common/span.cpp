@@ -7,20 +7,12 @@ File::File(std::string content, std::string path)
 Span::Span(const File &file, size_t offset, size_t length)
     : file(file), offset(offset), length(length) {}
 
-std::string Span::stringify() const {
-  int line = get_line_number();
-  int col = get_column_number();
-
-  std::string result = file.path;
-  result += ":";
-  result += std::to_string(line);
-  result += ":";
-  result += std::to_string(col);
-  return result;
-}
-
 std::ostream &operator<<(std::ostream &os, const Span &span) {
-  os << span.stringify();
+  int line = span.get_line_number();
+  int col = span.get_column_number();
+
+  os << span.file.path << ":" << std::to_string(line) << ":"
+     << std::to_string(col);
   return os;
 }
 

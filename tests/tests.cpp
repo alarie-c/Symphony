@@ -3,7 +3,9 @@
 
 #include "common/diagnostic.hpp"
 #include "common/span.hpp"
+#include "lexer/token.hpp"
 
+#include <sstream>
 #include <string>
 
 TEST_CASE("Testing code spans") {
@@ -84,4 +86,19 @@ TEST_CASE("Span on second line works correctly") {
   CHECK(output.find("let y = 10;") != std::string::npos);
   CHECK(output.find("^~~") != std::string::npos);
   CHECK(output.find("Unused variable") != std::string::npos);
+}
+
+TEST_CASE("Token representation is accurate") {
+  std::string source = "";
+  std::string path = "test.symph";
+  File file(source, path);
+  Token tok = Token(Token::Kind::PlusEquals, Span(file, 0, 1));
+
+  CHECK(get_token_repr(tok.kind) == "+=");
+  std::stringstream ss;
+  ss << tok;
+
+  std::string output = ss.str();
+  CHECK(output.find("+=") != std::string::npos);
+  CHECK(output.find("test.symph") != std::string::npos);
 }
