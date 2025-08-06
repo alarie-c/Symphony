@@ -92,6 +92,7 @@ constexpr const char *get_token_repr(const Token::Kind &kind) {
     TOKEN_LIST
 #undef X
   }
+  return "<unknown>";
 }
 
 // For use in `TOKEN_OPERATOR_REPR_MAP` only...

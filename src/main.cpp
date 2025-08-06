@@ -3,7 +3,6 @@
 #include "common/span.hpp"
 #include <iostream>
 
-
 int main() {
   console::initialize_console_attributes();
 
