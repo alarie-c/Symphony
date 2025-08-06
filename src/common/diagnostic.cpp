@@ -1,6 +1,7 @@
 #include "common/diagnostic.hpp"
 #include "common/ansi.hpp"
 #include "common/span.hpp"
+#include "diagnostic.hpp"
 #include <cassert>
 #include <iostream>
 #include <sstream>
@@ -55,4 +56,16 @@ std::ostream &diagnostic::operator<<(std::ostream &os,
                                      const Severity &severity) {
   os << get_diagnostic_severity_string(severity);
   return os;
+}
+
+DiagnosticEngine::DiagnosticEngine() : diagnostics({}) {}
+
+void DiagnosticEngine::push(const Diagnostic diag) {
+  diagnostics.push_back(std::move(diag));
+}
+
+void DiagnosticEngine::print_all() const {
+  for (auto &d : diagnostics) {
+    std::cout << d.print() << std::endl;
+  }
 }

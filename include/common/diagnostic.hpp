@@ -4,6 +4,7 @@
 #include "span.hpp"
 #include <iostream>
 #include <string>
+#include <vector>
 
 namespace diagnostic {
 
@@ -111,5 +112,14 @@ std::ostream &operator<<(std::ostream &os, const Severity &severity);
 } // namespace diagnostic
 
 using Diagnostic = diagnostic::Diagnostic;
+
+class DiagnosticEngine {
+  std::vector<Diagnostic> diagnostics;
+
+public:
+  DiagnosticEngine();
+  void push(const Diagnostic diag);
+  void print_all() const;
+};
 
 #endif

@@ -63,6 +63,7 @@
   X(FatArrow, "=>")                                                            \
   X(Colon, ":")                                                                \
   X(Semicolon, ";")                                                            \
+  X(Question, "?")                                                             \
   X(Newline, "<newline>")                                                      \
   X(Eof, "<eof>")
 
@@ -95,54 +96,57 @@ constexpr const char *get_token_repr(const Token::Kind &kind) {
   return "<unknown>";
 }
 
-// For use in `TOKEN_OPERATOR_REPR_MAP` only...
-#define REPR(tk) {Token::Kind::tk, get_token_repr(Token::Kind::tk)}
+// // For use in `TOKEN_OPERATOR_REPR_MAP` only...
+// #define REPR(tk) {Token::Kind::tk, get_token_repr(Token::Kind::tk)}
 
-/// @brief An ordered array of every operator `Token::Kind` and it's
-/// corresponding string representation.
-constexpr std::array<std::pair<Token::Kind, const char *>, 39>
-    TOKEN_OPERATOR_REPR_MAP = {{
-        REPR(StarStarEquals),
-        REPR(SlashSlashEquals),
-        REPR(StarStar),
-        REPR(StarEquals),
-        REPR(SlashSlash),
-        REPR(SlashEquals),
-        REPR(PlusPlus),
-        REPR(PlusEquals),
-        REPR(MinusMinus),
-        REPR(MinusEquals),
-        REPR(BangEquals),
-        REPR(EqualsEquals),
-        REPR(LessEquals),
-        REPR(MoreEquals),
-        REPR(AndAnd),
-        REPR(BarBar),
-        REPR(Arrow),
-        REPR(FatArrow),
-        REPR(Star),
-        REPR(Slash),
-        REPR(Plus),
-        REPR(Minus),
-        REPR(Percent),
-        REPR(Dot),
-        REPR(Comma),
-        REPR(Semicolon),
-        REPR(Colon),
-        REPR(Bar),
-        REPR(And),
-        REPR(Bang),
-        REPR(Equals),
-        REPR(Less),
-        REPR(More),
-        REPR(LParen),
-        REPR(RParen),
-        REPR(LBrac),
-        REPR(RBrac),
-        REPR(LCurl),
-        REPR(RCurl),
-    }};
-#undef REPR
+// /// Represents the longest representation for any operator token.
+// constexpr unsigned short MAX_TOKEN_OPERATOR_REPR_LEN = 3;
+
+// /// @brief An ordered array of every operator `Token::Kind` and it's
+// /// corresponding string representation.
+// constexpr std::array<std::pair<Token::Kind, const char *>, 39>
+//     TOKEN_OPERATOR_REPR_MAP = {{
+//         REPR(StarStarEquals),
+//         REPR(SlashSlashEquals),
+//         REPR(StarStar),
+//         REPR(StarEquals),
+//         REPR(SlashSlash),
+//         REPR(SlashEquals),
+//         REPR(PlusPlus),
+//         REPR(PlusEquals),
+//         REPR(MinusMinus),
+//         REPR(MinusEquals),
+//         REPR(BangEquals),
+//         REPR(EqualsEquals),
+//         REPR(LessEquals),
+//         REPR(MoreEquals),
+//         REPR(AndAnd),
+//         REPR(BarBar),
+//         REPR(Arrow),
+//         REPR(FatArrow),
+//         REPR(Star),
+//         REPR(Slash),
+//         REPR(Plus),
+//         REPR(Minus),
+//         REPR(Percent),
+//         REPR(Dot),
+//         REPR(Comma),
+//         REPR(Semicolon),
+//         REPR(Colon),
+//         REPR(Bar),
+//         REPR(And),
+//         REPR(Bang),
+//         REPR(Equals),
+//         REPR(Less),
+//         REPR(More),
+//         REPR(LParen),
+//         REPR(RParen),
+//         REPR(LBrac),
+//         REPR(RBrac),
+//         REPR(LCurl),
+//         REPR(RCurl),
+//     }};
+// #undef REPR
 
 // For use in `maybe_keyword()` only...
 #define MATCH(str, tk)                                                         \
