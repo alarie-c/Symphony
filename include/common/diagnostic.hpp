@@ -118,7 +118,7 @@ class DiagnosticEngine {
 
 public:
   DiagnosticEngine();
-  void push(const Diagnostic diag);
+  void emit(const Diagnostic diag);
   void print_all() const;
 };
 
