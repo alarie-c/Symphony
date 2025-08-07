@@ -1,7 +1,29 @@
 #include "lexer/lexer.hpp"
-#include "lexer.hpp"
+#include "common/diagnostic.hpp"
 #include <cctype>
 #include <utility>
+
+constexpr const char *ERROR_MSG_NEWLINE_IN_STRING =
+    "Newlines are not allowed in string literals. Change this to a raw string "
+    "literal with `\"\"\"` instead or remove the newline.";
+
+constexpr const char *ERROR_MSG_MISSING_DELIMITER =
+    "This string literal has no closing `\"`!";
+
+bool is_identifier_start(const char &ch) {
+  return std::isalpha(ch) || ch == '_';
+}
+
+bool is_identifier_cont(const char &ch) {
+  return std::isalnum(ch) || ch == '_';
+}
+
+bool is_numeric_start(const char &ch) { return std::isdigit(ch); }
+bool is_numeric_cont(const char &ch) { return std::isdigit(ch) || ch == '.'; }
+
+bool is_str_literal_disallowed(const char &ch) {
+  return (ch == '\n' || ch == '\r');
+}
 
 Lexer::Lexer(const File &file, DiagnosticEngine &diag_engine)
     : file(file), cursor(0), diag_engine(diag_engine), tokens({}) {}
@@ -26,7 +48,7 @@ char Lexer::peek(const unsigned k) {
   return file.content.at(cursor);
 }
 
-char Lexer::advance(const unsigned k) {
+char Lexer::eat(const unsigned k) {
   if (is_at_end(k))
     cursor = file.length;
   return current();
@@ -34,12 +56,96 @@ char Lexer::advance(const unsigned k) {
 
 void Lexer::skip_whitespace() {
   while (std::isspace(peek()) && peek() != '\n')
-    advance();
+    eat();
 }
 
-Token Lexer::advance_and_return(const Token::Kind kind, const Span span) {
-  advance(span.length);
+Token Lexer::eat_and_emit(const Token::Kind kind, const Span span) {
+  eat(span.length);
   return Token(kind, span);
+}
+
+Token Lexer::lex_identifier() {
+  const auto start = cursor;
+  while (is_identifier_cont(peek()))
+    eat();
+
+  // Once the above condition fails, create the token
+  const auto span = Span(file, start, cursor - start + 1);
+  const auto lexeme = std::string(span.get_lexeme());
+  const auto kind = maybe_keyword(lexeme);
+
+  eat(); // move past the last char
+  return Token(kind, span);
+}
+
+Token Lexer::lex_numeric() {
+  const auto start = cursor;
+  auto kind = Token::Kind::Integer;
+
+  while (is_numeric_cont(peek())) {
+    if (peek() == '.') {
+      // Check to see if the token isn't already a float and if the thing after
+      // the dot is actually a number
+      if (kind != Token::Kind::Float && is_numeric_start(peek(2))) {
+        kind = Token::Kind::Float;
+        eat(2);
+        continue;
+      }
+
+      // Otherwise, this dot is its own token, so stop here
+      break;
+    }
+
+    // If it isn't a dot but still numeric_cont, then advance and continue
+    eat();
+  }
+
+  // Create the token
+  const auto span = Span(file, start, cursor - start + 1);
+  eat(); // move past the last char
+  return Token(kind, span);
+}
+
+std::optional<Token> Lexer::lex_string() {
+  const auto start = cursor;
+  bool error_found = false;
+
+  while (1) {
+    if (is_str_literal_disallowed(peek())) {
+      const auto diag_span = Span(file, cursor, 1);
+      diag_engine.push(Diagnostic(diagnostic::Kind::InvalidString, diag_span,
+                                  ERROR_MSG_NEWLINE_IN_STRING));
+      error_found = true;
+      // Skip to the closing delimiter
+      while (current() != '"')
+        eat();
+    }
+
+    // Check if the EOF was found and throw an error
+    if (current() == '\0') {
+      const auto diag_span = Span(file, cursor - 1, 1);
+      diag_engine.push(Diagnostic(diagnostic::Kind::UnterminatedString,
+                                  diag_span, ERROR_MSG_MISSING_DELIMITER));
+      return std::nullopt;
+    }
+
+    // If closing delimiter found, eat it and break
+    if (peek() == '"') {
+      eat();
+      break;
+    }
+
+    // Otherwise keep going
+    eat();
+  }
+
+  if (error_found)
+    return std::nullopt;
+
+  // Create the token
+  const auto span = Span(file, start, cursor - start + 1);
+  eat(); // move past the last char
+  return Token(Token::Kind::String, span);
 }
 
 std::optional<Token> Lexer::lex_operator() {
@@ -53,97 +159,95 @@ std::optional<Token> Lexer::lex_operator() {
   switch (ch0) {
   case '+': {
     if (ch1 == '+')
-      return advance_and_return(PlusPlus, Span(file, start, 2));
+      return eat_and_emit(PlusPlus, Span(file, start, 2));
     if (ch1 == '=')
-      return advance_and_return(PlusEquals, Span(file, start, 2));
-    return advance_and_return(Plus, Span(file, start, 1));
+      return eat_and_emit(PlusEquals, Span(file, start, 2));
+    return eat_and_emit(Plus, Span(file, start, 1));
   }
   case '-': {
     if (ch1 == '-')
-      return advance_and_return(MinusMinus, Span(file, start, 2));
+      return eat_and_emit(MinusMinus, Span(file, start, 2));
     if (ch1 == '=')
-      return advance_and_return(MinusEquals, Span(file, start, 2));
+      return eat_and_emit(MinusEquals, Span(file, start, 2));
     if (ch1 == '>')
-      return advance_and_return(Arrow, Span(file, start, 2));
-    return advance_and_return(Minus, Span(file, start, 1));
+      return eat_and_emit(Arrow, Span(file, start, 2));
+    return eat_and_emit(Minus, Span(file, start, 1));
   }
   case '*': {
     if (ch1 == '*' && ch2 == '=')
-      return advance_and_return(StarStarEquals, Span(file, start, 3));
+      return eat_and_emit(StarStarEquals, Span(file, start, 3));
     if (ch1 == '*')
-      return advance_and_return(StarStar, Span(file, start, 2));
+      return eat_and_emit(StarStar, Span(file, start, 2));
     if (ch1 == '=')
-      return advance_and_return(StarEquals, Span(file, start, 2));
-    return advance_and_return(Star, Span(file, start, 1));
+      return eat_and_emit(StarEquals, Span(file, start, 2));
+    return eat_and_emit(Star, Span(file, start, 1));
   }
   case '/': {
     if (ch1 == '/' && ch2 == '=')
-      return advance_and_return(SlashSlashEquals, Span(file, start, 3));
+      return eat_and_emit(SlashSlashEquals, Span(file, start, 3));
     if (ch1 == '/')
-      return advance_and_return(SlashSlash, Span(file, start, 2));
+      return eat_and_emit(SlashSlash, Span(file, start, 2));
     if (ch1 == '=')
-      return advance_and_return(SlashEquals, Span(file, start, 2));
-    return advance_and_return(Slash, Span(file, start, 1));
+      return eat_and_emit(SlashEquals, Span(file, start, 2));
+    return eat_and_emit(Slash, Span(file, start, 1));
   }
   case '=': {
     if (ch1 == '=')
-      return advance_and_return(EqualsEquals, Span(file, start, 2));
+      return eat_and_emit(EqualsEquals, Span(file, start, 2));
     if (ch1 == '>')
-      return advance_and_return(FatArrow, Span(file, start, 2));
-    return advance_and_return(Equals, Span(file, start, 1));
+      return eat_and_emit(FatArrow, Span(file, start, 2));
+    return eat_and_emit(Equals, Span(file, start, 1));
   }
   case '!': {
     if (ch1 == '=')
-      return advance_and_return(BangEquals, Span(file, start, 2));
-    return advance_and_return(Bang, Span(file, start, 1));
+      return eat_and_emit(BangEquals, Span(file, start, 2));
+    return eat_and_emit(Bang, Span(file, start, 1));
   }
   case '<': {
     if (ch1 == '=')
-      return advance_and_return(LessEquals, Span(file, start, 2));
-    return advance_and_return(Less, Span(file, start, 1));
+      return eat_and_emit(LessEquals, Span(file, start, 2));
+    return eat_and_emit(Less, Span(file, start, 1));
   }
   case '>': {
     if (ch1 == '=')
-      return advance_and_return(MoreEquals, Span(file, start, 2));
-    return advance_and_return(More, Span(file, start, 1));
+      return eat_and_emit(MoreEquals, Span(file, start, 2));
+    return eat_and_emit(More, Span(file, start, 1));
   }
   case '&': {
     if (ch1 == '&')
-      return advance_and_return(AndAnd, Span(file, start, 2));
-    return advance_and_return(And, Span(file, start, 1));
+      return eat_and_emit(AndAnd, Span(file, start, 2));
+    return eat_and_emit(And, Span(file, start, 1));
   }
   case '|': {
     if (ch1 == '|')
-      return advance_and_return(BarBar, Span(file, start, 2));
-    return advance_and_return(Bar, Span(file, start, 1));
+      return eat_and_emit(BarBar, Span(file, start, 2));
+    return eat_and_emit(Bar, Span(file, start, 1));
   }
   case '(':
-    return advance_and_return(LParen, Span(file, start, 1));
+    return eat_and_emit(LParen, Span(file, start, 1));
   case ')':
-    return advance_and_return(RParen, Span(file, start, 1));
+    return eat_and_emit(RParen, Span(file, start, 1));
   case '[':
-    return advance_and_return(LBrac, Span(file, start, 1));
+    return eat_and_emit(LBrac, Span(file, start, 1));
   case ']':
-    return advance_and_return(RBrac, Span(file, start, 1));
+    return eat_and_emit(RBrac, Span(file, start, 1));
   case '{':
-    return advance_and_return(LCurl, Span(file, start, 1));
+    return eat_and_emit(LCurl, Span(file, start, 1));
   case '}':
-    return advance_and_return(RCurl, Span(file, start, 1));
+    return eat_and_emit(RCurl, Span(file, start, 1));
   case '.':
-    return advance_and_return(Dot, Span(file, start, 1));
+    return eat_and_emit(Dot, Span(file, start, 1));
   case ',':
-    return advance_and_return(Comma, Span(file, start, 1));
+    return eat_and_emit(Comma, Span(file, start, 1));
   case ':':
-    return advance_and_return(Colon, Span(file, start, 1));
+    return eat_and_emit(Colon, Span(file, start, 1));
   case ';':
-    return advance_and_return(Semicolon, Span(file, start, 1));
+    return eat_and_emit(Semicolon, Span(file, start, 1));
   case '?':
-    return advance_and_return(Question, Span(file, start, 1));
+    return eat_and_emit(Question, Span(file, start, 1));
   case '%':
-    return advance_and_return(Percent, Span(file, start, 1));
-  default: {
+    return eat_and_emit(Percent, Span(file, start, 1));
+  default:
+    return std::nullopt;
   }
-  }
-
-  return std::nullopt;
 }
